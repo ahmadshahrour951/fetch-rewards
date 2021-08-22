@@ -7,16 +7,36 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "dev": "nodemon ./src/server.js"
+    "clean": "rm -rf ./dist && mkdir dist",
+    "build": "yarn run clean && babel ./src --out-dir dist",
+    "start": "yarn run build && nodemon --exec babel-node ./src/server.js",
+    "serve": "node ./dist/server.js",
+    "dev": "cross-env NODE_ENV=development yarn start",
+    "predev": "cross-env NODE_ENV=development yarn run db:reset:dev",
+    "db:reset:dev": "yarn sequelize-cli db:drop && yarn sequelize-cli db:create && yarn sequelize-cli db:migrate && yarn sequelize-cli db:seed:all --seeders-path ./src/db/seeders/dev",
+    "db:create:dev": "cross-env NODE_ENV=development yarn sequelize-cli db:create",
+    "test": "cross-env NODE_ENV=test mocha ./src/tests/* --require @babel/register",
+    "pretest": "cross-env NODE_ENV=test yarn run db:reset:test",
+    "db:reset:test": "yarn sequelize-cli db:drop && yarn sequelize-cli db:create && yarn sequelize-cli db:migrate && yarn sequelize-cli db:seed:all --seeders-path ./src/db/seeders/test",
+    "db:create:test": "cross-env NODE_ENV=test yarn sequelize-cli db:create",
+    "db:migrate:prod": "yarn sequelize-cli db:migrate"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "helmet": "^4.6.0",
-    "mongoose": "^5.13.7",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "pg": "^8.7.1",
+    "sequelize": "^6.6.5"
   },
   "devDependencies": {
-    "nodemon": "^2.0.12"
+    "@babel/cli": "^7.14.8",
+    "@babel/core": "^7.15.0",
+    "@babel/node": "^7.14.9",
+    "@babel/preset-env": "^7.15.0",
+    "cross-env": "^7.0.3",
+    "dotenv-safe": "^8.2.0",
+    "nodemon": "^2.0.12",
+    "sequelize-cli": "^6.2.0"
   }
 }
