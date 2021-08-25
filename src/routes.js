@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const db = require('./db/models');
 
-router.get('/transactions', (req, res, next) => {});
-router.get('/transactions/:payerId', (req, res, next) => {});
-router.get('/balance', (req, res, next) => {});
-router.get('/balance/:payerId', (req, res, next) => {});
+router.post('/transactions', async (req, res, next) => {
+  try {
+    const { payer, points, timestamp } = req.body;
+    await db.Transaction.create({
+      payer,
+      points,
+      timestamp,
+    });
+    return res.status(201);
+  } catch (err) {
+    next(err);
+  }
+});
 
-router.post('/add', (req, res, next) => {});
 
-router.patch('/spend', (req, res, next) => {});
 
 router.use((error, req, res, next) => {});
 router.use((req, res, next) => {});
