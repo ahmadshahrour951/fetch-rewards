@@ -42,8 +42,8 @@ router.get('/balance', async (req, res, next) => {
     }
 
     return res.status(200).json(payerFreq);
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -74,7 +74,11 @@ router.patch('/spend', async (req, res, next) => {
     }
 
     if (pointsLeft > 0) {
-      return res.status(500).json({ message: 'Not enough points to claim.' });
+      const error = new Error(
+        `Not enough points to claim. You require an additional ${pointsLeft} points`
+      );
+      error.statusCode = 500;
+      throw error;
     }
 
     let newTransactions = [];
@@ -94,11 +98,19 @@ router.patch('/spend', async (req, res, next) => {
 
     return res.status(200).json(newTransactions);
   } catch (err) {
-    console.log(err);
+    next(err);
   }
 });
 
-router.use((error, req, res, next) => {});
-router.use((req, res, next) => {});
+router.use((error, req, res, next) =>
+  res.status(error.statusCode || 500).json({
+    message: error.message || 'Internal Server Error',
+    data: error.data || null,
+  })
+);
+
+router.use((req, res) =>
+  res.status(404).json({ message: 'API endpoint not found.' })
+);
 
 module.exports = router;
