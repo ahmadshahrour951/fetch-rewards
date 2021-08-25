@@ -25,6 +25,28 @@ router.get('/transactions', async (req, res, next) => {
   }
 });
 
+router.get('/balance', async (req, res, next) => {
+  try {
+    const transactions = await db.Transaction.findAll({
+      order: [['timestamp', 'ASC']],
+    });
+
+    const payerFreq = {};
+
+    for (let transaction of transactions) {
+      if (payerFreq.hasOwnProperty(transaction.payer)) {
+        payerFreq[transaction.payer] += transaction.points;
+      } else {
+        payerFreq[transaction.payer] = transaction.points;
+      }
+    }
+
+    return res.status(200).json(payerFreq);
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 
 router.use((error, req, res, next) => {});
 router.use((req, res, next) => {});
