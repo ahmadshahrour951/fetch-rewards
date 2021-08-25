@@ -3,16 +3,22 @@ module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('transactions', {
       id: {
-        allowNull: false,
-        autoIncrement: true,
-        primaryKey: true,
         type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      payer: {
+        type: Sequelize.STRING,
+        unqiue: true,
+        allowNull: false,
       },
       points: {
         type: Sequelize.INTEGER,
+        allowNull: false,
       },
       timestamp: {
         type: Sequelize.DATE,
+        allowNull: false,
       },
     });
   },

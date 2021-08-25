@@ -2,20 +2,33 @@
 const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Transaction extends Model {
-    static associate(models) {
-      Transaction.belongsTo(models.User);
-      Transaction.belongsTo(models.Payer);
-    }
+    static associate(models) {}
   }
   Transaction.init(
     {
-      points: DataTypes.INTEGER,
-      timestamp: DataTypes.DATE,
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      payer: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      points: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      timestamp: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
     },
     {
       sequelize,
       modelName: 'Transaction',
-      underscored: true
+      underscored: true,
+      timestamps: false
     }
   );
   return Transaction;
