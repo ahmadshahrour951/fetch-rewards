@@ -16,6 +16,14 @@ router.post('/transactions', async (req, res, next) => {
   }
 });
 
+router.get('/transactions', async (req, res, next) => {
+  try {
+    const transactions = await db.Transaction.findAll({});
+    return res.status(200).json(transactions);
+  } catch (err) {
+    next(err);
+  }
+});
 
 
 router.use((error, req, res, next) => {});
