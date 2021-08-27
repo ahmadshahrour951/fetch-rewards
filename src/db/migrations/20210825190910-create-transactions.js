@@ -9,7 +9,6 @@ module.exports = {
       },
       payer: {
         type: Sequelize.STRING,
-        unqiue: true,
         allowNull: false,
       },
       points: {
