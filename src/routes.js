@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('./db/models');
 
+const cleanTransactions = require('./helpers/cleanTransactions');
+const createTransactions = require('./helpers/createTransactions');
+
 router.post('/transactions', async (req, res, next) => {
   try {
     const { payer, points, timestamp } = req.body;
@@ -18,7 +21,15 @@ router.post('/transactions', async (req, res, next) => {
 
 router.get('/transactions', async (req, res, next) => {
   try {
-    const transactions = await db.Transaction.findAll({});
+    const transactions = await db.Transaction.findAll({
+      order: [['timestamp', 'ASC']],
+      raw: true,
+    });
+
+    transactions.forEach((x) => {
+      delete x.id;
+    });
+
     return res.status(200).json(transactions);
   } catch (err) {
     next(err);
@@ -27,76 +38,63 @@ router.get('/transactions', async (req, res, next) => {
 
 router.get('/balance', async (req, res, next) => {
   try {
-    const transactions = await db.Transaction.findAll({
-      order: [['timestamp', 'ASC']],
-    });
+    const transactions = await db.Transaction.findAll();
 
-    const payerFreq = {};
+    const payerBalanceFreq = {};
 
-    for (let transaction of transactions) {
-      if (payerFreq.hasOwnProperty(transaction.payer)) {
-        payerFreq[transaction.payer] += transaction.points;
+    for (let i = 0; i < transactions.length; i++) {
+      if (payerBalanceFreq.hasOwnProperty(transactions[i].payer)) {
+        payerBalanceFreq[transactions[i].payer] += transactions[i].points;
       } else {
-        payerFreq[transaction.payer] = transaction.points;
+        payerBalanceFreq[transactions[i].payer] = transactions[i].points;
       }
     }
 
-    return res.status(200).json(payerFreq);
+    return res.status(200).json(payerBalanceFreq);
   } catch (err) {
     next(err);
   }
 });
 
-router.patch('/spend', async (req, res, next) => {
+router.post('/spend', async (req, res, next) => {
   try {
-    const now = new Date();
     const points = req.body.points;
     const transactions = await db.Transaction.findAll({
+      attributes: ['payer', 'points'],
       order: [['timestamp', 'ASC']],
+      raw: true,
     });
 
-    let pointsLeft = points;
-    let payerDeductions = {};
+    let totalBalance = 0;
 
-    for (let transaction of transactions) {
-      if (pointsLeft <= 0) break;
+    transactions.forEach((x) => {
+      x.seen = false;
+      totalBalance += x.points;
+    });
 
-      const subtractNum =
-        pointsLeft - transaction.points < 0 ? pointsLeft : transaction.points;
-
-      if (payerDeductions.hasOwnProperty(transaction.payer)) {
-        payerDeductions[transaction.payer] -= subtractNum;
-      } else {
-        payerDeductions[transaction.payer] = -subtractNum;
-      }
-
-      pointsLeft -= transaction.points;
-    }
-
-    if (pointsLeft > 0) {
+    if (totalBalance < points) {
       const error = new Error(
-        `Not enough points to claim. You require an additional ${pointsLeft} points`
+        `Not enough points to redeem, you require an additional ${
+          points - totalBalance
+        } points`
       );
-      error.statusCode = 500;
+      error.statusCode = 405;
       throw error;
     }
 
-    let newTransactions = [];
+    const cleanTranArr = cleanTransactions(transactions);
+    const newTranArr = createTransactions(points, cleanTranArr);
 
-    for (let payer in payerDeductions) {
-      newTransactions.push({
-        payer,
-        points: payerDeductions[payer],
-      });
+    await db.Transaction.bulkCreate(newTranArr);
 
-      await db.Transaction.create({
-        payer,
-        points: payerDeductions[payer],
-        timestamp: now,
-      });
-    }
-
-    return res.status(200).json(newTransactions);
+    return res.status(200).json(
+      newTranArr.map((x) => {
+        return {
+          payer: x.payer,
+          points: x.points,
+        };
+      })
+    );
   } catch (err) {
     next(err);
   }
