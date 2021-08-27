@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
-app.use(logger('dev'));
+app.use(logger('dev', { skip: () => process.env.NODE_ENV === 'test' }));
 
 app.use('/', routes);
 
