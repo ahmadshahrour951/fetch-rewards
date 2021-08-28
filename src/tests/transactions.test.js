@@ -47,7 +47,7 @@ describe('Before Spend Transactions', async () => {
   });
 
   it('GET the balance', async () => {
-    const { body, status } = await request(app).get('/balance');
+    const { body, status } = await request(app).get('/transactions/balance');
 
     expect(status).to.equal(200);
     expect(body).to.be.an('object').to.own.include({
@@ -61,7 +61,7 @@ describe('Before Spend Transactions', async () => {
 describe('Prompt Spend Transaction', async () => {
   it('POST a new spend', async () => {
     const { body, status } = await request(app)
-      .post('/spend')
+      .post('/transactions/spend')
       .send({ points: 5000 });
 
     expect(status).to.equal(200);
@@ -75,7 +75,7 @@ describe('Prompt Spend Transaction', async () => {
   });
 
   it('GET the balance', async () => {
-    const { body, status } = await request(app).get('/balance');
+    const { body, status } = await request(app).get('/transactions/balance');
 
     expect(status).to.equal(200);
     expect(body).to.be.an('object').to.own.include({
@@ -89,7 +89,7 @@ describe('Prompt Spend Transaction', async () => {
 describe('Spend Transaction to make balance = 0', async () => {
   it('POST a new spend', async () => {
     const { body, status } = await request(app)
-      .post('/spend')
+      .post('/transactions/spend')
       .send({ points: 6300 });
 
     expect(status).to.equal(200);
@@ -102,7 +102,7 @@ describe('Spend Transaction to make balance = 0', async () => {
   });
 
   it('GET the balance', async () => {
-    const { body, status } = await request(app).get('/balance');
+    const { body, status } = await request(app).get('/transactions/balance');
 
     expect(status).to.equal(200);
     expect(body).to.be.an('object').to.own.include({
@@ -116,17 +116,16 @@ describe('Spend Transaction to make balance = 0', async () => {
 describe('Spend Transaction Error', async () => {
   it('POST a new spend error', async () => {
     const { body, status } = await request(app)
-      .post('/spend')
+      .post('/transactions/spend')
       .send({ points: 1 });
 
     expect(status).to.equal(405);
-    expect(body.message).to.equal(
-      'Not enough points to redeem, you require an additional 1 points'
-    );
+    expect(body.message).to.equal('More points required.');
+    expect(body.data).to.be.an('integer').equal.to(1);
   });
 
   it('GET the balance', async () => {
-    const { body, status } = await request(app).get('/balance');
+    const { body, status } = await request(app).get('/transactions/balance');
 
     expect(status).to.equal(200);
     expect(body).to.be.an('object').to.own.include({
@@ -142,34 +141,43 @@ describe('Post Spend Transactions', async () => {
     const { body, status } = await request(app).get('/transactions');
 
     expect(status).to.equal(200);
-    expect(body)
-      .to.be.an('array')
-      .to.include.deep.members([
-        transaction_1,
-        transaction_2,
-        transaction_3,
-        transaction_4,
-        transaction_5,
-        {
-          payer: 'DANNON',
-          points: -100,
-        },
-        {
-          payer: 'UNILEVER',
-          points: -200,
-        },
-        {
-          payer: 'MILLER COORS',
-          points: -4700,
-        },
-        {
-          payer: 'MILLER COORS',
-          points: -5300,
-        },
-        {
-          payer: 'DANNON',
-          points: -1000,
-        },
-      ]);
+    expect(body).to.be.an('array');
+
+    const withTimestamp = body.slice(0, 5);
+    expect(withTimestamp).to.include.deep.members([
+      transaction_1,
+      transaction_2,
+      transaction_3,
+      transaction_4,
+      transaction_5,
+    ]);
+
+    const withoutTimestamp = body.slice(5);
+    withoutTimestamp.forEach((x) => {
+      delete x.timestamp;
+    });
+
+    expect(withoutTimestamp).to.include.deep.members([
+      {
+        payer: 'DANNON',
+        points: -100,
+      },
+      {
+        payer: 'UNILEVER',
+        points: -200,
+      },
+      {
+        payer: 'MILLER COORS',
+        points: -4700,
+      },
+      {
+        payer: 'MILLER COORS',
+        points: -5300,
+      },
+      {
+        payer: 'DANNON',
+        points: -1000,
+      },
+    ]);
   });
 });
